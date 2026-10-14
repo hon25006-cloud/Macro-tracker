@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Macro Tracker</title>
+<style>
+:root{--bg:#f6f5f1;--card:#fff;--text:#1d1d1b;--muted:#77756e;--line:#e6e4dc;--accent:#2f7d5b;--p:#d9534f;--c:#e0a030;--f:#4a7fc1;--cal:#2f7d5b;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141412;--card:#1f1f1c;--text:#f1f0ea;--muted:#9b998f;--line:#32312c;--accent:#5fbf8f;--p:#ef7b77;--c:#eebb55;--f:#7aa7e0;--cal:#5fbf8f;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#141412;--card:#1f1f1c;--text:#f1f0ea;--muted:#9b998f;--line:#32312c;--accent:#5fbf8f;--p:#ef7b77;--c:#eebb55;--f:#7aa7e0;--cal:#5fbf8f;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+main{max-width:520px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+.date{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.date h1{font-size:18px;margin:0;text-align:center}
+.date small{display:block;color:var(--muted);font-weight:400;font-size:13px}
+button{font:inherit;color:inherit;cursor:pointer}
+.ic{background:var(--card);border:1px solid var(--line);border-radius:10px;width:40px;height:40px;font-size:18px}
+.big{text-align:center}
+.big .n{font-size:38px;font-weight:700;color:var(--cal)}
+.big .n span{font-size:16px;color:var(--muted);font-weight:400}
+.bar{height:8px;background:var(--line);border-radius:99px;overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;border-radius:99px;transition:width .3s}
+.m{margin-top:14px}
+.m .row{display:flex;justify-content:space-between;font-size:14px}
+.m .row b{font-weight:600}
+.m .row span{color:var(--muted)}
+h2{font-size:15px;margin:0 0 10px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+input{font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px;width:100%;min-width:0}
+label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
+.primary{width:100%;margin-top:10px;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:12px;font-weight:600}
+.entry{display:flex;align-items:center;gap:8px;padding:10px 0;border-top:1px solid var(--line)}
+.entry:first-of-type{border-top:0}
+.entry .t{flex:1;min-width:0}
+.entry .t b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.entry .t small{color:var(--muted)}
+.x{background:none;border:0;color:var(--muted);font-size:20px;padding:4px 8px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px}
+.chip{flex:none;background:var(--bg);border:1px solid var(--line);border-radius:99px;padding:6px 12px;font-size:13px}
+.empty{color:var(--muted);text-align:center;padding:12px 0;font-size:14px}
+.link{background:none;border:0;color:var(--muted);text-decoration:underline;font-size:13px}
+.hint{font-size:12px;color:var(--muted);margin-top:6px}
+</style>
+</head>
+<body>
+<main>
+  <div class="date">
+    <button class="ic" id="prev" aria-label="Previous day">‹</button>
+    <h1 id="dateLabel"></h1>
+    <button class="ic" id="next" aria-label="Next day">›</button>
+  </div>
+
+  <div class="card">
+    <div class="big"><div class="n" id="calNum"></div><div class="bar"><i id="calBar" style="background:var(--cal)"></i></div></div>
+    <div id="macros"></div>
+  </div>
+
+  <div class="card">
+    <h2>Add food</h2>
+    <div class="chips" id="chips"></div>
+    <input id="name" placeholder="Food name" autocomplete="off">
+    <div class="grid" style="margin-top:8px">
+      <div><label>Protein (g)</label><input id="p" type="number" inputmode="decimal" min="0" placeholder="0"></div>
+      <div><label>Carbs (g)</label><input id="c" type="number" inputmode="decimal" min="0" placeholder="0"></div>
+      <div><label>Fat (g)</label><input id="f" type="number" inputmode="decimal" min="0" placeholder="0"></div>
+    </div>
+    <div class="hint" id="calHint">Calories: 0 (4·P + 4·C + 9·F)</div>
+    <button class="primary" id="add">Add</button>
+  </div>
+
+  <div class="card">
+    <h2>Today's log</h2>
+    <div id="log"></div>
+  </div>
+
+  <div class="card">
+    <h2>Daily goals</h2>
+    <div class="grid" style="grid-template-columns:repeat(2,1fr)">
+      <div><label>Calories</label><input id="g_cal" type="number" inputmode="numeric"></div>
+      <div><label>Protein (g)</label><input id="g_p" type="number" inputmode="numeric"></div>
+      <div><label>Carbs (g)</label><input id="g_c" type="number" inputmode="numeric"></div>
+      <div><label>Fat (g)</label><input id="g_f" type="number" inputmode="numeric"></div>
+    </div>
+    <div style="text-align:center;margin-top:12px"><button class="link" id="reset">Clear all data</button></div>
+  </div>
+</main>
+
+<script>
+const KEY='macro-tracker-v1';
+const $=id=>document.getElementById(id);
+let state={goals:{cal:2200,p:150,c:240,f:70},days:{},recent:[]};
+try{const s=localStorage.getItem(KEY);if(s){const o=JSON.parse(s);if(o&&o.goals)state=Object.assign(state,o)}}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}}
+
+const iso=d=>{const z=new Date(d.getTime()-d.getTimezoneOffset()*6e4);return z.toISOString().slice(0,10)};
+let cur=new Date();cur.setHours(12,0,0,0);
+const today=iso(new Date());
+const kcal=(p,c,f)=>Math.round(4*p+4*c+9*f);
+const num=v=>Math.max(0,parseFloat(v)||0);
+const r1=n=>Math.round(n*10)/10;
+const esc=s=>s.replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+
+function render(){
+  const key=iso(cur),list=state.days[key]||[];
+  const isToday=key===today;
+  $('dateLabel').innerHTML=(isToday?'Today':cur.toLocaleDateString(undefined,{weekday:'long'}))+'<small>'+cur.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})+'</small>';
+  $('next').disabled=isToday;$('next').style.opacity=isToday?.4:1;
+  const t=list.reduce((a,e)=>({p:a.p+e.p,c:a.c+e.c,f:a.f+e.f,cal:a.cal+e.cal}),{p:0,c:0,f:0,cal:0});
+  const g=state.goals;
+  $('calNum').innerHTML=Math.round(t.cal)+' <span>/ '+g.cal+' kcal</span>';
+  $('calBar').style.width=Math.min(100,g.cal?t.cal/g.cal*100:0)+'%';
+  const rows=[['Protein','p','var(--p)'],['Carbs','c','var(--c)'],['Fat','f','var(--f)']];
+  $('macros').innerHTML=rows.map(([n,k,col])=>{
+    const left=r1(g[k]-t[k]);
+    return `<div class="m"><div class="row"><b>${n}</b><span>${r1(t[k])} / ${g[k]} g · ${left>=0?left+' left':Math.abs(left)+' over'}</span></div><div class="bar"><i style="width:${Math.min(100,g[k]?t[k]/g[k]*100:0)}%;background:${col}"></i></div></div>`}).join('');
+  $('log').innerHTML=list.length?list.map((e,i)=>`<div class="entry"><div class="t"><b>${esc(e.name)}</b><small>${Math.round(e.cal)} kcal · P ${r1(e.p)} · C ${r1(e.c)} · F ${r1(e.f)}</small></div><button class="x" data-del="${i}" aria-label="Delete">×</button></div>`).join(''):'<div class="empty">Nothing logged yet.</div>';
+  $('chips').style.display=state.recent.length?'flex':'none';
+  $('chips').innerHTML=state.recent.map((e,i)=>`<button class="chip" data-r="${i}">${esc(e.name)}</button>`).join('');
+  ['cal','p','c','f'].forEach(k=>{if(document.activeElement!==$('g_'+k))$('g_'+k).value=g[k]});
+}
+function hint(){$('calHint').textContent='Calories: '+kcal(num($('p').value),num($('c').value),num($('f').value))+' (4·P + 4·C + 9·F)'}
+function addEntry(name,p,c,f){
+  const key=iso(cur);
+  (state.days[key]=state.days[key]||[]).push({name,p,c,f,cal:kcal(p,c,f)});
+  state.recent=[{name,p,c,f},...state.recent.filter(r=>r.name.toLowerCase()!==name.toLowerCase())].slice(0,10);
+  save();render();
+}
+$('add').onclick=()=>{
+  const name=$('name').value.trim()||'Food';
+  const p=num($('p').value),c=num($('c').value),f=num($('f').value);
+  if(!p&&!c&&!f){$('p').focus();return}
+  addEntry(name,p,c,f);
+  ['name','p','c','f'].forEach(i=>$(i).value='');hint();
+};
+['p','c','f'].forEach(i=>$(i).addEventListener('input',hint));
+document.addEventListener('click',e=>{
+  const d=e.target.closest('[data-del]');
+  if(d){state.days[iso(cur)].splice(+d.dataset.del,1);save();render()}
+  const r=e.target.closest('[data-r]');
+  if(r){const x=state.recent[+r.dataset.r];addEntry(x.name,x.p,x.c,x.f)}
+});
+$('prev').onclick=()=>{cur.setDate(cur.getDate()-1);render()};
+$('next').onclick=()=>{if(iso(cur)<today){cur.setDate(cur.getDate()+1);render()}};
+['cal','p','c','f'].forEach(k=>$('g_'+k).addEventListener('input',e=>{state.goals[k]=num(e.target.value);save();render()}));
+$('reset').onclick=()=>{if(confirm('Delete all logged foods and reset goals?')){state={goals:{cal:2200,p:150,c:240,f:70},days:{},recent:[]};save();render()}};
+render();
+</script>
+</body>
+</html>
